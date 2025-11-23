@@ -75,3 +75,56 @@ body, html {
     pointer-events: none;
 }
 /* UI elemanları eklendikçe pointer-events: auto vereceğiz */
+/* TOOLBAR STİLLERİ */
+.toolbar {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background: rgba(30, 30, 36, 0.85);
+    padding: 15px 25px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px); /* Buzlu cam efekti */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    pointer-events: auto; /* Tıklanabilir olsun */
+}
+
+.tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    min-width: 60px;
+    color: var(--text-light);
+    opacity: 0.7;
+}
+
+.tool-btn:hover {
+    background: rgba(255,255,255,0.1);
+    opacity: 1;
+    transform: translateY(-5px);
+}
+
+.tool-btn.active {
+    background: var(--primary-color);
+    color: #000;
+    opacity: 1;
+    box-shadow: 0 0 15px var(--primary-color);
+    font-weight: bold;
+}
+
+.tool-btn.delete.active {
+    background: var(--danger);
+    box-shadow: 0 0 15px var(--danger);
+    color: white;
+}
+
+.icon { font-size: 24px; margin-bottom: 5px; }
+.label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.separator { width: 1px; background: rgba(255,255,255,0.2); margin: 0 10px; }
