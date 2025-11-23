@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import { SceneManager } from './SceneManager.js';
 import { CameraManager } from './CameraManager.js';
-import { Grid } from '../world/Grid.js'; // Yeni
-import { InteractionManager } from './InteractionManager.js'; // Yeni
+import { InputManager } from './InputManager.js'; // Eski InputManager silinip InteractionManager'a geçilmedi, dikkat!
+// Düzeltme: Biz InputManager değil InteractionManager yazdık.
+import { InteractionManager } from './InteractionManager.js';
+import { Grid } from '../world/Grid.js';
+import { BuildingManager } from '../world/BuildingManager.js'; // Yeni!
 
 export class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.isRunning = false;
 
-        // Renderer Ayarları
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
             antialias: true,
@@ -20,28 +22,26 @@ export class Game {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        // --- SİSTEM KURULUMU ---
-        console.log("Titan Engine: Sistemler Başlatılıyor...");
+        console.log("Titan Engine: Sistemler Yükleniyor...");
         
-        // 1. Temel Yöneticiler
+        // Sıralama Önemli!
         this.sceneManager = new SceneManager(this);
         this.cameraManager = new CameraManager(this);
+        this.grid = new Grid(200);
         
-        // 2. Dünya ve Mantık
-        this.grid = new Grid(200); // 200 birimlik harita
+        // Yeni İnşaat Yöneticisi
+        this.buildingManager = new BuildingManager(this);
         
-        // 3. Etkileşim (En son eklenmeli çünkü grid ve sahneye ihtiyaç duyar)
+        // Etkileşim (En son)
         this.interactionManager = new InteractionManager(this);
         
-        // Event Listeners
         window.addEventListener('resize', () => this.onResize());
     }
 
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
-
-        // Loading ekranını kaldır
+        
         const loader = document.getElementById('loading-screen');
         if(loader) {
             loader.style.opacity = '0';
@@ -49,16 +49,17 @@ export class Game {
         }
 
         this.renderer.setAnimationLoop(() => this.loop());
-        console.log("Titan Engine: Hazır ve Çalışıyor.");
+        console.log("Titan Engine: Hazır.");
     }
 
     loop() {
         if (!this.isRunning) return;
 
-        // Tüm yöneticilerin güncelleme fonksiyonlarını çağır
         this.cameraManager.update();
         
-        // Render Al
+        // Bina animasyonlarını güncelle
+        this.buildingManager.update();
+        
         this.renderer.render(this.sceneManager.scene, this.cameraManager.camera);
     }
 
