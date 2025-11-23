@@ -1,16 +1,18 @@
 import * as THREE from 'three';
 import { SceneManager } from './SceneManager.js';
 import { CameraManager } from './CameraManager.js';
-import { InputManager } from './InputManager.js'; // Eski InputManager silinip InteractionManager'a geçilmedi, dikkat!
-// Düzeltme: Biz InputManager değil InteractionManager yazdık.
 import { InteractionManager } from './InteractionManager.js';
+import { UIManager } from './UIManager.js'; // YENİ
 import { Grid } from '../world/Grid.js';
-import { BuildingManager } from '../world/BuildingManager.js'; // Yeni!
+import { BuildingManager } from '../world/BuildingManager.js';
 
 export class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.isRunning = false;
+        
+        // Varsayılan Alet
+        this.activeTool = 'residential'; 
 
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
@@ -24,16 +26,15 @@ export class Game {
 
         console.log("Titan Engine: Sistemler Yükleniyor...");
         
-        // Sıralama Önemli!
         this.sceneManager = new SceneManager(this);
         this.cameraManager = new CameraManager(this);
         this.grid = new Grid(200);
         
-        // Yeni İnşaat Yöneticisi
         this.buildingManager = new BuildingManager(this);
-        
-        // Etkileşim (En son)
         this.interactionManager = new InteractionManager(this);
+        
+        // UI Manager en son (HTML elementlerine erişeceği için)
+        this.uiManager = new UIManager(this);
         
         window.addEventListener('resize', () => this.onResize());
     }
@@ -56,10 +57,7 @@ export class Game {
         if (!this.isRunning) return;
 
         this.cameraManager.update();
-        
-        // Bina animasyonlarını güncelle
         this.buildingManager.update();
-        
         this.renderer.render(this.sceneManager.scene, this.cameraManager.camera);
     }
 
