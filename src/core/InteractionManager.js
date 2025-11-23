@@ -3,7 +3,6 @@ import * as THREE from 'three';
 export class InteractionManager {
     constructor(game) {
         this.game = game;
-        
         this.raycaster = new THREE.Raycaster();
         this.pointer = new THREE.Vector2();
         this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -20,10 +19,8 @@ export class InteractionManager {
         this.cursor.visible = false;
         this.game.sceneManager.scene.add(this.cursor);
         
-        // Hoverlanan son koordinat
         this.hoveredGrid = null;
 
-        // Eventler
         window.addEventListener('pointermove', (e) => this.onPointerMove(e));
         window.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     }
@@ -35,14 +32,24 @@ export class InteractionManager {
     }
 
     onPointerDown(e) {
-        // Eğer UI üzerinde değilse ve geçerli bir grid üzerindeysek
-        if (this.cursor.visible && this.hoveredGrid) {
-            // Şimdilik sadece 'residential' (konut) dikiyoruz.
-            // İleride UI'dan seçilen tipi dikeceğiz.
+        // İmleç görünür değilse veya UI'a tıklandıysa iptal
+        if (!this.cursor.visible || !this.hoveredGrid) return;
+        if (e.target.closest('.toolbar')) return; 
+
+        const activeTool = this.game.activeTool; // Game.js'den gelen veri
+
+        if (activeTool === 'bulldoze') {
+            // YIKIM MODU
+            this.game.buildingManager.removeBuilding(
+                this.hoveredGrid.x, 
+                this.hoveredGrid.z
+            );
+        } else {
+            // İNŞAAT MODU (residential, commercial, industrial)
             this.game.buildingManager.placeBuilding(
                 this.hoveredGrid.x, 
                 this.hoveredGrid.z, 
-                'residential'
+                activeTool
             );
         }
     }
@@ -55,10 +62,18 @@ export class InteractionManager {
         if (hit) {
             this.cursor.visible = true;
             const gridPos = this.game.grid.worldToGrid(hit);
-            this.hoveredGrid = gridPos; // Hafızaya al
+            this.hoveredGrid = gridPos;
             
             const snapPos = this.game.grid.gridToWorld(gridPos.x, gridPos.z);
             this.cursor.position.copy(snapPos);
+            
+            // Cursor rengini alete göre değiştir (Opsiyonel Güzellik)
+            if(this.game.activeTool === 'bulldoze') {
+                this.cursor.material.color.setHex(0xff6b6b); // Kırmızı
+            } else {
+                this.cursor.material.color.setHex(0x00d2d3); // Turkuaz
+            }
+
         } else {
             this.cursor.visible = false;
             this.hoveredGrid = null;
