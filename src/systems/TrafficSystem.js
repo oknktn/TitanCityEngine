@@ -8,16 +8,16 @@ export class TrafficSystem {
         this.materials = this.getMaterials();
         
         this.spawnTimer = 0;
-        this.spawnRate = 3; // Daha hızlı deneriz
+        this.spawnRate = 3; 
         this.maxCars = 30; 
     }
 
     getMaterials() {
         return [
-            new THREE.MeshStandardMaterial({ color: 0xeb4d4b }), // Kırmızı
-            new THREE.MeshStandardMaterial({ color: 0x1dd1a1 }), // Yeşil
-            new THREE.MeshStandardMaterial({ color: 0x48dbfb }), // Mavi
-            new THREE.MeshStandardMaterial({ color: 0xfeca57 })  // Sarı
+            new THREE.MeshStandardMaterial({ color: 0xeb4d4b }),
+            new THREE.MeshStandardMaterial({ color: 0x1dd1a1 }), 
+            new THREE.MeshStandardMaterial({ color: 0x48dbfb }),
+            new THREE.MeshStandardMaterial({ color: 0xfeca57 })
         ];
     }
 
@@ -34,11 +34,9 @@ export class TrafficSystem {
         }
     }
 
-    // --- HATA DÜZELTİLMİŞ ÜRETİM MANTIĞI ---
     trySpawnCar() {
         const grid = this.game.grid;
         
-        // Bütün yolları tarayarak rastgele bir başlangıç yolu bul
         const roadKeys = [];
         grid.cells.forEach((data, key) => {
             if (data.type === 'road') {
@@ -46,26 +44,42 @@ export class TrafficSystem {
             }
         });
 
-        if (roadKeys.length === 0) return; // Yol yoksa araba üretme
+        if (roadKeys.length === 0) return;
 
-        // Rastgele bir yol seç
         const randomKey = roadKeys[Math.floor(Math.random() * roadKeys.length)];
-        // Key'i (örneğin "5,10") koordinata (5, 10) çevir
         const [x, z] = randomKey.split(',').map(Number); 
         
-        
+        // 1. Arabayı Oluştur
         const car = this.createCarMesh();
         const startPos = grid.gridToWorld(x, z);
         
+        // 2. İlk Hedefi Seç (Arabayı hemen hareket ettirmek için)
+        // Kendi pozisyonunu önceki pozisyon olarak veriyoruz ki geri dönmesin
+        const initialTarget = this.findNextRoadTile(x, z, x, z); 
+        
+        if (!initialTarget) {
+            this.game.sceneManager.scene.remove(car);
+            return;
+        }
+
+        const nextPos = grid.gridToWorld(initialTarget.x, initialTarget.z);
+        nextPos.y = 0.5;
+
+        // USER DATA: Arabaya hafıza ekliyoruz
         car.userData = { 
-            currentGridX: x, 
-            currentGridZ: z,
-            targetPos: startPos, 
+            currentGridX: initialTarget.x, // Şu anki hedefi başlangıç yap
+            currentGridZ: initialTarget.z,
+            previousGridX: x, // Bir önceki konumu kaydet
+            previousGridZ: z, 
+            targetPos: nextPos, 
             speed: 6
         };
         
         car.position.copy(startPos);
         car.position.y = 0.5;
+
+        // Arabayı ilk hedefe doğru döndür
+        car.lookAt(nextPos);
 
         this.cars.push(car);
         this.game.sceneManager.scene.add(car);
@@ -84,27 +98,35 @@ export class TrafficSystem {
         const target = car.userData.targetPos;
         const currentPos = car.position;
 
-        // 1. Hedefe İlerleme (Lerp)
+        // Lerp ile yumuşak hareket
         const moveDistance = car.userData.speed * dt;
         currentPos.lerp(target, moveDistance / currentPos.distanceTo(target));
         
-        // 2. Hedefe Ulaşma Kontrolü
+        // Hedefe Ulaşma Kontrolü
         if (currentPos.distanceTo(target) < 0.1) {
             
-            const newTarget = this.findNextRoadTile(car.userData.currentGridX, car.userData.currentGridZ);
+            const px = car.userData.currentGridX;
+            const pz = car.userData.currentGridZ;
+
+            // Önceki konumu ve şu anki konumu gönder
+            const newTarget = this.findNextRoadTile(px, pz, car.userData.previousGridX, car.userData.previousGridZ);
             
             if (newTarget) {
-                // Yeni hedefi ayarla
+                // Pozisyonları güncelle
+                car.userData.previousGridX = px; 
+                car.userData.previousGridZ = pz;
                 car.userData.currentGridX = newTarget.x;
                 car.userData.currentGridZ = newTarget.z;
+
+                // Yeni hedef pozisyonunu hesapla
                 car.userData.targetPos = grid.gridToWorld(newTarget.x, newTarget.z);
                 car.userData.targetPos.y = 0.5; 
 
-                // Arabayı döndür (LookAt)
+                // Arabayı yeni hedefe doğru döndür
                 car.lookAt(car.userData.targetPos);
 
             } else {
-                // Yolun Sonu: Arabayı Sil
+                // Çıkmaz sokak: Arabayı Sil
                 this.game.sceneManager.scene.remove(car);
                 this.cars = this.cars.filter(c => c !== car);
             }
@@ -112,7 +134,7 @@ export class TrafficSystem {
     }
 
     // --- YOL YAPAY ZEKASI (RANDOM WALK) ---
-    findNextRoadTile(x, z) {
+    findNextRoadTile(x, z, prevX, prevZ) {
         const grid = this.game.grid;
         const directions = [
             { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, 
@@ -124,13 +146,22 @@ export class TrafficSystem {
             const nx = x + dir.dx;
             const nz = z + dir.dz;
             
-            // Eğer yol ise VE boş değilse (Yani binanın üstünde yol yoksa)
-            if (grid.get(nx, nz) && grid.get(nx, nz).type === 'road') {
+            const isRoad = grid.get(nx, nz) && grid.get(nx, nz).type === 'road';
+            const isPrevious = (nx === prevX && nz === prevZ); // Geri dönmeyi engelle
+
+            if (isRoad && !isPrevious) {
                 possiblePaths.push({ x: nx, z: nz });
             }
         }
 
-        if (possiblePaths.length === 0) return null;
+        if (possiblePaths.length === 0) {
+            // Eğer hiçbir yere gidemiyorsa, çıkmaz sokaktadır. Geri döndür.
+            if (grid.get(prevX, prevZ)) {
+                 return { x: prevX, z: prevZ }; // Geldiği yere dön
+            } else {
+                 return null; // Yokuşun dibi (Haritadan silinir)
+            }
+        }
 
         // Rastgele bir yol seç
         return possiblePaths[Math.floor(Math.random() * possiblePaths.length)];
