@@ -32,20 +32,23 @@ export class InteractionManager {
     }
 
     onPointerDown(e) {
-        // İmleç görünür değilse veya UI'a tıklandıysa iptal
-        if (!this.cursor.visible || !this.hoveredGrid) return;
-        if (e.target.closest('.toolbar')) return; 
+        // --- KRİTİK DÜZELTME BAŞLANGICI ---
+        // Eğer tıklanan yer "toolbar" sınıfına sahip bir elementin içindeyse,
+        // oyuna tıklamayı iptal et ve fonksiyondan çık.
+        if (e.target.closest('.toolbar')) return;
+        // --- KRİTİK DÜZELTME BİTİŞİ ---
 
-        const activeTool = this.game.activeTool; // Game.js'den gelen veri
+        if (!this.cursor.visible || !this.hoveredGrid) return;
+
+        const activeTool = this.game.activeTool; 
 
         if (activeTool === 'bulldoze') {
-            // YIKIM MODU
             this.game.buildingManager.removeBuilding(
                 this.hoveredGrid.x, 
                 this.hoveredGrid.z
             );
         } else {
-            // İNŞAAT MODU (residential, commercial, industrial)
+            // Ağaç, Yol, Konut vb. hepsi buraya düşer
             this.game.buildingManager.placeBuilding(
                 this.hoveredGrid.x, 
                 this.hoveredGrid.z, 
@@ -67,7 +70,7 @@ export class InteractionManager {
             const snapPos = this.game.grid.gridToWorld(gridPos.x, gridPos.z);
             this.cursor.position.copy(snapPos);
             
-            // Cursor rengini alete göre değiştir (Opsiyonel Güzellik)
+            // Cursor rengini alete göre değiştir
             if(this.game.activeTool === 'bulldoze') {
                 this.cursor.material.color.setHex(0xff6b6b); // Kırmızı
             } else {
