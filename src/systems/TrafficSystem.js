@@ -4,13 +4,12 @@ export class TrafficSystem {
     constructor(game) {
         this.game = game;
         this.cars = [];
-        this.carGeometry = new THREE.BoxGeometry(1.5, 0.8, 0.8); // Arabanın ana gövdesi
+        this.carGeometry = new THREE.BoxGeometry(1.5, 0.8, 0.8);
         this.materials = this.getMaterials();
         
-        // Simülasyon Ayarları
         this.spawnTimer = 0;
-        this.spawnRate = 5; // Her 5 saniyede bir araba yaratmaya çalış
-        this.maxCars = 30; // Maksimum araba limiti
+        this.spawnRate = 3; // Daha hızlı deneriz
+        this.maxCars = 30; 
     }
 
     getMaterials() {
@@ -25,45 +24,54 @@ export class TrafficSystem {
     update(dt) {
         this.spawnTimer += dt;
 
-        // Araba Üretimi
         if (this.spawnTimer >= this.spawnRate && this.cars.length < this.maxCars) {
             this.trySpawnCar();
             this.spawnTimer = 0;
         }
 
-        // Arabaların Hareketi
         for (let i = this.cars.length - 1; i >= 0; i--) {
             this.moveCar(this.cars[i], dt);
         }
     }
 
+    // --- HATA DÜZELTİLMİŞ ÜRETİM MANTIĞI ---
     trySpawnCar() {
         const grid = this.game.grid;
-        // Rastgele bir başlangıç noktası bul
-        const startX = Math.floor(Math.random() * grid.size) - grid.size / 2;
-        const startZ = Math.floor(Math.random() * grid.size) - grid.size / 2;
         
-        // Eğer başlangıç noktası yol ise
-        if (grid.get(startX, startZ) && grid.get(startX, startZ).type === 'road') {
-            const car = this.createCarMesh();
-            const startPos = grid.gridToWorld(startX, startZ);
-            car.position.copy(startPos);
-            car.position.y = 0.5; // Yoldan biraz yüksekte dursun
+        // Bütün yolları tarayarak rastgele bir başlangıç yolu bul
+        const roadKeys = [];
+        grid.cells.forEach((data, key) => {
+            if (data.type === 'road') {
+                roadKeys.push(key);
+            }
+        });
 
-            car.userData = { 
-                currentGridX: startX, 
-                currentGridZ: startZ,
-                targetPos: startPos, // İlk hedef kendisi
-                speed: 6 // Hız (birim/saniye)
-            };
+        if (roadKeys.length === 0) return; // Yol yoksa araba üretme
 
-            this.cars.push(car);
-            this.game.sceneManager.scene.add(car);
-        }
+        // Rastgele bir yol seç
+        const randomKey = roadKeys[Math.floor(Math.random() * roadKeys.length)];
+        // Key'i (örneğin "5,10") koordinata (5, 10) çevir
+        const [x, z] = randomKey.split(',').map(Number); 
+        
+        
+        const car = this.createCarMesh();
+        const startPos = grid.gridToWorld(x, z);
+        
+        car.userData = { 
+            currentGridX: x, 
+            currentGridZ: z,
+            targetPos: startPos, 
+            speed: 6
+        };
+        
+        car.position.copy(startPos);
+        car.position.y = 0.5;
+
+        this.cars.push(car);
+        this.game.sceneManager.scene.add(car);
     }
 
     createCarMesh() {
-        // Rastgele bir renk seç
         const mat = this.materials[Math.floor(Math.random() * this.materials.length)];
         const car = new THREE.Mesh(this.carGeometry, mat);
         car.castShadow = true;
@@ -76,14 +84,13 @@ export class TrafficSystem {
         const target = car.userData.targetPos;
         const currentPos = car.position;
 
-        // 1. Hedefe İlerleme (Lerp ile yumuşak hareket)
+        // 1. Hedefe İlerleme (Lerp)
         const moveDistance = car.userData.speed * dt;
         currentPos.lerp(target, moveDistance / currentPos.distanceTo(target));
-
+        
         // 2. Hedefe Ulaşma Kontrolü
         if (currentPos.distanceTo(target) < 0.1) {
             
-            // Yeni hedefi bul
             const newTarget = this.findNextRoadTile(car.userData.currentGridX, car.userData.currentGridZ);
             
             if (newTarget) {
@@ -91,9 +98,9 @@ export class TrafficSystem {
                 car.userData.currentGridX = newTarget.x;
                 car.userData.currentGridZ = newTarget.z;
                 car.userData.targetPos = grid.gridToWorld(newTarget.x, newTarget.z);
-                car.userData.targetPos.y = 0.5; // Yükseklik
+                car.userData.targetPos.y = 0.5; 
 
-                // Arabayı hedefe doğru döndür (Smooth Rotation)
+                // Arabayı döndür (LookAt)
                 car.lookAt(car.userData.targetPos);
 
             } else {
@@ -112,13 +119,12 @@ export class TrafficSystem {
             { dx: 0, dz: 1 }, { dx: 0, dz: -1 }
         ];
 
-        // Mümkün olan yol noktalarını topla
         let possiblePaths = [];
         for (const dir of directions) {
             const nx = x + dir.dx;
             const nz = z + dir.dz;
             
-            // Yol mu? Ve halihazırda üstünde durduğumuz yer değilse
+            // Eğer yol ise VE boş değilse (Yani binanın üstünde yol yoksa)
             if (grid.get(nx, nz) && grid.get(nx, nz).type === 'road') {
                 possiblePaths.push({ x: nx, z: nz });
             }
