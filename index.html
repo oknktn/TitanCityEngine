@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Titan City Engine v1.0</title>
+    <link rel="stylesheet" href="./css/main.css">
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="loading-screen">
+            <div class="loader"></div>
+            <div class="loading-text">MOTOR BAŞLATILIYOR...</div>
+        </div>
+        <div id="game-ui" style="display: none;">
+            </div>
+    </div>
+
+    <script>
+        window.addEventListener('error', function(event) {
+            console.error("CRITICAL ERROR:", event.message);
+            // İleride buraya ekrana hata basan bir div ekleyebiliriz
+        });
+    </script>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
