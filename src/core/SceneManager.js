@@ -5,43 +5,55 @@ export class SceneManager {
         this.game = game;
         this.scene = new THREE.Scene();
         
-        // ATMOSFER
-        this.scene.background = new THREE.Color(0x222222); // Koyu gri arka plan (Profesyonel Editor Havası)
-        this.scene.fog = new THREE.Fog(0x222222, 50, 200); // Derinlik hissi için sis
+        // --- ATMOSFER ---
+        // Siyah yerine yumuşak bir gökyüzü mavisi
+        this.scene.background = new THREE.Color(0xa8d8ea); 
+        // Derinlik hissi için sis (Uzaklar flulaşır)
+        this.scene.fog = new THREE.Fog(0xa8d8ea, 30, 150); 
 
         this.setupLights();
-        this.setupGrid();
+        this.setupEnvironment();
     }
 
     setupLights() {
-        // Ortam Işığı (Gölgelerin zifiri karanlık olmaması için)
-        const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.7);
         this.scene.add(ambient);
 
-        // Güneş Işığı (Gölgeler için)
-        const sun = new THREE.DirectionalLight(0xffffff, 1.5);
-        sun.position.set(100, 150, 50);
+        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+        sun.position.set(50, 100, 50); // Güneş açısı
         sun.castShadow = true;
         
-        // Gölge Kalite Ayarları
         sun.shadow.mapSize.width = 2048;
         sun.shadow.mapSize.height = 2048;
         sun.shadow.camera.near = 0.5;
         sun.shadow.camera.far = 500;
-        const d = 100; // Gölge alan genişliği
+        const d = 100;
         sun.shadow.camera.left = -d; sun.shadow.camera.right = d;
         sun.shadow.camera.top = d; sun.shadow.camera.bottom = -d;
         
         this.scene.add(sun);
     }
 
-    setupGrid() {
-        // Sonsuz hissi veren Grid
-        const gridHelper = new THREE.GridHelper(200, 50, 0x444444, 0x333333);
+    setupEnvironment() {
+        // ZEMİN (ÇİM)
+        // Grid'in altına yeşil bir düzlem koyuyoruz
+        const groundGeo = new THREE.PlaneGeometry(500, 500);
+        const groundMat = new THREE.MeshStandardMaterial({ 
+            color: 0x57c276, // Tatlı bir çim yeşili
+            roughness: 0.8 
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.01; // Grid çizgilerinin çok az altında
+        ground.receiveShadow = true;
+        this.scene.add(ground);
+
+        // GRID (Rehber Çizgiler)
+        // Grid rengini çimin üzerinde görünecek şekilde açıyoruz
+        const gridHelper = new THREE.GridHelper(200, 100, 0xffffff, 0xffffff);
+        gridHelper.position.y = 0;
+        gridHelper.material.opacity = 0.15; // Çok silik beyaz
+        gridHelper.material.transparent = true;
         this.scene.add(gridHelper);
-        
-        // Merkez noktası (Referans için)
-        const axesHelper = new THREE.AxesHelper(5);
-        this.scene.add(axesHelper);
     }
 }
