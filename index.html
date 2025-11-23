@@ -27,26 +27,36 @@
 
         <div id="game-ui">
             <div class="toolbar">
+                <div class="tool-btn" data-tool="road">
+                    <div class="icon">🛣️</div>
+                    <div class="label">Yol</div>
+                </div>
+
                 <div class="tool-btn active" data-tool="residential">
                     <div class="icon">🏠</div>
                     <div class="label">Konut</div>
                 </div>
+
                 <div class="tool-btn" data-tool="commercial">
                     <div class="icon">🏢</div>
                     <div class="label">Ticari</div>
                 </div>
+
                 <div class="tool-btn" data-tool="industrial">
                     <div class="icon">🏭</div>
                     <div class="label">Sanayi</div>
                 </div>
+
                 <div class="separator"></div>
+
                 <div class="tool-btn delete" data-tool="bulldoze">
                     <div class="icon">🚧</div>
                     <div class="label">Yıkım</div>
                 </div>
             </div>
         </div>
-        </div>
+
+    </div>
 
     <script>
         window.addEventListener('error', function(event) {
