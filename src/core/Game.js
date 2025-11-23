@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 import { SceneManager } from './SceneManager.js';
-import { InputManager } from './InputManager.js';
 import { CameraManager } from './CameraManager.js';
+import { Grid } from '../world/Grid.js'; // Yeni
+import { InteractionManager } from './InteractionManager.js'; // Yeni
 
 export class Game {
     constructor() {
         this.canvas = document.getElementById('game-canvas');
         this.isRunning = false;
 
-        // Renderer
+        // Renderer Ayarları
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
             antialias: true,
@@ -19,17 +20,18 @@ export class Game {
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-        // --- SİSTEMLERİN BAŞLATILMASI ---
-        console.log("Sistemler yükleniyor...");
+        // --- SİSTEM KURULUMU ---
+        console.log("Titan Engine: Sistemler Başlatılıyor...");
         
-        // 1. Kamera (Göz)
+        // 1. Temel Yöneticiler
+        this.sceneManager = new SceneManager(this);
         this.cameraManager = new CameraManager(this);
         
-        // 2. Girdi (Eller)
-        this.inputManager = new InputManager(this);
+        // 2. Dünya ve Mantık
+        this.grid = new Grid(200); // 200 birimlik harita
         
-        // 3. Sahne (Dünya)
-        this.sceneManager = new SceneManager(this);
+        // 3. Etkileşim (En son eklenmeli çünkü grid ve sahneye ihtiyaç duyar)
+        this.interactionManager = new InteractionManager(this);
         
         // Event Listeners
         window.addEventListener('resize', () => this.onResize());
@@ -47,16 +49,16 @@ export class Game {
         }
 
         this.renderer.setAnimationLoop(() => this.loop());
-        console.log("Titan Engine: Hazır.");
+        console.log("Titan Engine: Hazır ve Çalışıyor.");
     }
 
     loop() {
         if (!this.isRunning) return;
 
-        // Güncellemeler
+        // Tüm yöneticilerin güncelleme fonksiyonlarını çağır
         this.cameraManager.update();
         
-        // Render
+        // Render Al
         this.renderer.render(this.sceneManager.scene, this.cameraManager.camera);
     }
 
